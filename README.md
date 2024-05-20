@@ -26,8 +26,8 @@ python -m train
 After training for 100 epochs (took around 3 mins):
 
 _Training loss_
-![Training Loss](train_loss.png)
+![Training Loss](output/train_loss.png)
 
 
 _Real vs. generated Pokemon_
-![Real vs. generated Pokemon](pokemon_comparison.png)
+![Real vs. generated Pokemon](output/pokemon_comparison.png)
