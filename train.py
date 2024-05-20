@@ -1,10 +1,9 @@
 import random
 import torch
+from torch import nn
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
-import matplotlib.pyplot as plt
-import numpy as np
-import torchvision.utils as vutils
+from models import Generator, Discriminator
 
 # Set random seed for reproducibility
 manualSeed = 999
@@ -27,13 +26,22 @@ def get_dataset(folder, image_size, batch_size):
     
     return dataloader
 
+def weights_init(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        nn.init.normal_(m.weight.data, 0.0, 0.02)
+    elif classname.find('BatchNorm') != -1:
+        nn.init.normal_(m.weight.data, 1.0, 0.02)
+        nn.init.constant_(m.bias.data, 0)
 
 if __name__ == "__main__":
     dataloader = get_dataset("pokemon_images/", 128, 128)
-    # Plot some training images
-    real_batch = next(iter(dataloader))
-    plt.figure(figsize=(8,8))
-    plt.axis("off")
-    plt.title("Training Images")
-    plt.imshow(np.transpose(vutils.make_grid(real_batch[0].to(device)[:64], padding=2, normalize=True).cpu(),(1,2,0)))
-    plt.show()
+    latent_dim = 100
+    # Create models
+    generator = Generator(latent_dim).to(device)
+    discriminator = Discriminator().to(device)
+    # Initialize weights
+    generator.apply(weights_init)
+    discriminator.apply(weights_init)
+    print(generator)
+    print(discriminator)
