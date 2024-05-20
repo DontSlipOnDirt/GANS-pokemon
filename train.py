@@ -8,14 +8,12 @@ from models import Generator, Discriminator
 import matplotlib.pyplot as plt
 import torchvision.utils as vutils
 import numpy as np
+import json
 
-# Set random seed for reproducibility
-manualSeed = 999
-#manualSeed = random.randint(1, 10000) # use if you want new results
+manualSeed = random.randint(1, 10000) # use if you want new results
 print("Random Seed: ", manualSeed)
 random.seed(manualSeed)
 torch.manual_seed(manualSeed)
-# torch.use_deterministic_algorithms(True) # Needed for reproducible results
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def get_dataset(folder, image_size, batch_size):
@@ -39,13 +37,17 @@ def weights_init(m):
         nn.init.constant_(m.bias.data, 0)
 
 if __name__ == "__main__":
-    # Read this from hyps file later
-    nz = 100
-    lr = 0.0002
-    beta1 = 0.5
-    num_epochs = 100
-    image_size = 64
-    batch_size = 128
+    with (open("hyps.json", "r")) as f:
+        hyps = json.load(f)
+        nz = hyps['latent_dim']
+        ngf = hyps['ngf']
+        ndf = hyps['ndf']
+        nc = hyps['nc']
+        lr = hyps['lr']
+        beta1 = hyps['beta1']
+        image_size = hyps['image_size']
+        batch_size = hyps['batch_size']
+        num_epochs = hyps['num_epochs']
     # Load the dataset
     dataloader = get_dataset("pokemon_images/", image_size, batch_size)
     # Create models
