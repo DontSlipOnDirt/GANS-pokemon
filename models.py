@@ -1,82 +1,69 @@
+import json
 from torch import nn
+
+
+with open('hyps.json') as f:
+    hyps = json.load(f)
+    nz = hyps['latent_dim']
+    ngpu = hyps['ngpu']
+    ngf = hyps['ngf']
+    ndf = hyps['ndf']
+    nc = hyps['nc']
 
 class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
-        
-        self.model = nn.Sequential(
-            # 128x128x3 -> 64x64x64
-            nn.Conv2d(3, 64, kernel_size=5, stride=2, padding=2, bias=False),
-            nn.BatchNorm2d(64, momentum=0.1, eps=0.8),
+        self.ngpu = ngpu
+        self.main = nn.Sequential(
+            # input is ``(nc) x 64 x 64``
+            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
-
-            # 64x64x64 -> 32x32x128
-            nn.Conv2d(64, 128, kernel_size=5, stride=2, padding=2, bias=False),
-            nn.BatchNorm2d(128, momentum=0.1, eps=0.8),
+            # state size. ``(ndf) x 32 x 32``
+            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 2),
             nn.LeakyReLU(0.2, inplace=True),
-
-            # 32x32x128 -> 16x16x256
-            nn.Conv2d(128, 256, kernel_size=5, stride=2, padding=2, bias=False),
-            nn.BatchNorm2d(256, momentum=0.1, eps=0.8),
+            # state size. ``(ndf*2) x 16 x 16``
+            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 4),
             nn.LeakyReLU(0.2, inplace=True),
-
-            # 16x16x256 -> 8x8x512
-            nn.Conv2d(256, 512, kernel_size=5, stride=2, padding=2, bias=False),
-            nn.BatchNorm2d(512, momentum=0.1, eps=0.8),
+            # state size. ``(ndf*4) x 8 x 8``
+            nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 8),
             nn.LeakyReLU(0.2, inplace=True),
-
-            # 8x8x512 -> 4x4x1024
-            nn.Conv2d(512, 1024, kernel_size=5, stride=2, padding=2, bias=False),
-            nn.BatchNorm2d(1024, momentum=0.1, eps=0.8),
-            nn.LeakyReLU(0.2, inplace=True),
-
-            nn.Flatten(),
-            nn.Linear(1024 * 4 * 4, 1),
+            # state size. ``(ndf*8) x 4 x 4``
+            nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
             nn.Sigmoid()
         )
 
-    def forward(self, x):
-        return self.model(x)
+    def forward(self, input):
+        return self.main(input)
 
 class Generator(nn.Module):
-    def __init__(self, latent_dim):
+    def __init__(self):
         super(Generator, self).__init__()
-        
-        self.init_size = 8  # Initial size before upsampling
-        self.l1 = nn.Sequential(
-            nn.Linear(latent_dim, 1024 * self.init_size * self.init_size)
-        )
-        
-        self.conv_blocks = nn.Sequential(
-            nn.BatchNorm2d(1024, momentum=0.1, eps=0.8),
-
-            # 8x8x1024 -> 16x16x512
-            nn.ConvTranspose2d(1024, 512, kernel_size=5, stride=2, padding=2, output_padding=1, bias=False),
-            nn.BatchNorm2d(512, momentum=0.1, eps=0.8),
-            nn.ReLU(inplace=True),
-
-            # 16x16x512 -> 32x32x256
-            nn.ConvTranspose2d(512, 256, kernel_size=5, stride=2, padding=2, output_padding=1, bias=False),
-            nn.BatchNorm2d(256, momentum=0.1, eps=0.8),
-            nn.ReLU(inplace=True),
-
-            # 32x32x256 -> 64x64x128
-            nn.ConvTranspose2d(256, 128, kernel_size=5, stride=2, padding=2, output_padding=1, bias=False),
-            nn.BatchNorm2d(128, momentum=0.1, eps=0.8),
-            nn.ReLU(inplace=True),
-
-            # 64x64x128 -> 128x128x64
-            nn.ConvTranspose2d(128, 64, kernel_size=5, stride=2, padding=2, output_padding=1, bias=False),
-            nn.BatchNorm2d(64, momentum=0.1, eps=0.8),
-            nn.ReLU(inplace=True),
-
-            # 128x128x64 -> 128x128x3
-            nn.Conv2d(64, 3, kernel_size=5, stride=1, padding=2),
+        self.ngpu = ngpu
+        self.main = nn.Sequential(
+            # input is Z, going into a convolution
+            nn.ConvTranspose2d( nz, ngf * 8, 4, 1, 0, bias=False),
+            nn.BatchNorm2d(ngf * 8),
+            nn.ReLU(True),
+            # state size. ``(ngf*8) x 4 x 4``
+            nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ngf * 4),
+            nn.ReLU(True),
+            # state size. ``(ngf*4) x 8 x 8``
+            nn.ConvTranspose2d( ngf * 4, ngf * 2, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ngf * 2),
+            nn.ReLU(True),
+            # state size. ``(ngf*2) x 16 x 16``
+            nn.ConvTranspose2d( ngf * 2, ngf, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ngf),
+            nn.ReLU(True),
+            # state size. ``(ngf) x 32 x 32``
+            nn.ConvTranspose2d( ngf, nc, 4, 2, 1, bias=False),
             nn.Tanh()
+            # state size. ``(nc) x 64 x 64``
         )
 
-    def forward(self, z):
-        out = self.l1(z)
-        out = out.view(out.shape[0], 1024, self.init_size, self.init_size)
-        img = self.conv_blocks(out)
-        return img
+    def forward(self, input):
+        return self.main(input)
