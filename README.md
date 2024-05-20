@@ -22,6 +22,22 @@ pokemon_images/\
 python -m train
 ```
 
+## Hyperparameters
+ The `hyps.json` file contains the hyperparamters used to train the GAN model. The parameters stored here are the following:
+
+ * **image_size**: all images are resized to `image_size x image_size`. Use a value of 64 until this [open issue](https://github.com/DontSlipOnDirt/GANS-pokemon/issues/3) is solved.
+* **batch_size**
+* **data_folder**: root folder where dataset was downloaded. If following the instructions in this README, the value of this parameter should be `pokemon_images/`
+* **latent_dim**: size of z latent vector (i.e. size of generator input)
+* **workers**: number of workers for dataloader
+* **nc**: number of channels in the training images. For color images this is 3.
+* **ngf**: size of feature maps in generator
+* **ndf**: size of feature maps in discriminator
+* **ngpu**: number of GPUs available. Use 0 for CPU mode.
+* **num_epochs**: number of training epochs
+* **lr**: learning rate for optimizers
+* **beta1**: hyperparameter for Adam optimizers
+
 ## Results
 After training for 100 epochs (took around 3 mins):
 
