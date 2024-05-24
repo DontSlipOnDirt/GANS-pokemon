@@ -1,5 +1,5 @@
 {
-    "image_size": 64,
+    "image_size": 128,
     "batch_size": 128,
     "data_folder": "pokemon_images/",
     "latent_dim": 100,
