@@ -39,11 +39,15 @@ python -m train
 * **beta1**: hyperparameter for Adam optimizers
 
 ## Results
-After training for 100 epochs (took around 3 mins):
+After training for 500 epochs (took around 15 mins):
 
 _Training loss_
-![Training Loss](output/train_loss.png)
+![Training Loss](output/train_loss_augmented.png)
 
 
 _Real vs. generated Pokemon_
-![Real vs. generated Pokemon](output/pokemon_comparison.png)
+![Real vs. generated Pokemon](output/pokemon_comparison_augmented.png)
+
+
+_Visualization of generated images during training process_ <br>
+![Progress](output/train_progress_augmented.gif)

@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 import torchvision.utils as vutils
 import numpy as np
 import json
+from augment import DiffAugment
+import pickle
 
 manualSeed = random.randint(1, 10000) # use if you want new results
 print("Random Seed: ", manualSeed)
@@ -76,6 +78,8 @@ if __name__ == "__main__":
     D_losses = []
     iters = 0
 
+    # Augmentation policy
+    policy = 'color,translation,cutout'
     print("Starting Training Loop...")
     # For each epoch
     for epoch in range(num_epochs):
@@ -92,7 +96,7 @@ if __name__ == "__main__":
             b_size = real_cpu.size(0)
             label = torch.full((b_size,), real_label, dtype=torch.float, device=device)
             # Forward pass real batch through D
-            output = D(real_cpu).view(-1)
+            output = D(DiffAugment(real_cpu, policy=policy)).view(-1)
             # Calculate loss on all-real batch
             D_error_real = criterion(output, label)
             # Calculate gradients for D in backward pass
@@ -106,7 +110,7 @@ if __name__ == "__main__":
             fake = G(noise)
             label.fill_(fake_label)
             # Classify all fake batch with D
-            output = D(fake.detach()).view(-1)
+            output = D(DiffAugment(fake.detach(), policy=policy)).view(-1)
             # Calculate D's loss on the all-fake batch
             D_error_fake = criterion(output, label)
             # Calculate the gradients for this batch, accumulated (summed) with previous gradients
@@ -123,7 +127,7 @@ if __name__ == "__main__":
             G.zero_grad()
             label.fill_(real_label)  # fake labels are real for generator cost
             # Since we just updated D, perform another forward pass of all-fake batch through D
-            output = D(fake).view(-1)
+            output = D(DiffAugment(fake, policy=policy)).view(-1)
             # Calculate G's loss based on this output
             G_error = criterion(output, label)
             # Calculate gradients for G
@@ -142,7 +146,7 @@ if __name__ == "__main__":
             D_losses.append(D_error.item())
 
             # Check how the generator is doing by saving G's output on fixed_noise
-            if (iters % 500 == 0) or ((epoch == num_epochs-1) and (i == len(dataloader)-1)):
+            if (iters % 100 == 0) or ((epoch == num_epochs-1) and (i == len(dataloader)-1)):
                 with torch.no_grad():
                     fake = G(fixed_noise).detach().cpu()
                 img_list.append(vutils.make_grid(fake, padding=2, normalize=True))
@@ -173,3 +177,11 @@ if __name__ == "__main__":
     plt.title("Fake Images")
     plt.imshow(np.transpose(img_list[-1],(1,2,0)))
     plt.show()
+
+    # Save image list
+    with open('output/img_list.pkl', 'wb') as f:
+        pickle.dump(img_list, f)
+
+    # Save models
+    torch.save(G.state_dict(), 'models/G.pt')
+    torch.save(D.state_dict(), 'models/D.pt')
